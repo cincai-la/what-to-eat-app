@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今天吃什么</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', 'Noto Sans SC', sans-serif; -webkit-tap-highlight-color: transparent; }
+        @keyframes slide-up { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .animate-slide-up { animation: slide-up 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+        .active-scale { transition: transform 0.1s ease; }
+        .active-scale:active { transform: scale(0.95); }
+        #message-box, #admin-panel, #password-prompt { transition: opacity 0.3s, transform 0.3s; }
+        .main-container { flex-grow: 1; overflow-y: auto; padding-bottom: 60px; }
+        /* 密码输入框的抖动动画 */
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+        .shake { animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both; }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <!-- App 手机屏幕模拟器 -->
+    <div class="w-full max-w-sm h-[880px] max-h-[95vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col relative">
+
+        <!-- 顶部状态栏 -->
+        <div class="absolute top-0 left-0 w-full p-4 flex justify-between items-center text-xs text-gray-700 z-20 bg-white/80 backdrop-blur-sm">
+            <span>9:41</span>
+        </div>
+        
+        <!-- Google Ad 栏位 -->
+        <div id="google-ad-top" class="w-full h-14 bg-gray-200 flex items-center justify-center text-gray-500 text-sm mt-12 flex-shrink-0 z-10">
+            Google Ads Placeholder
+        </div>
+
+        <!-- 主内容区域容器 -->
+        <div class="main-container relative">
+            <div id="main-screen" class="flex flex-col items-center justify-center text-center p-8 min-h-full">
+                <h1 class="text-4xl font-bold text-gray-800 tracking-wider">今天吃什么？</h1>
+                <p class="text-gray-500 mt-4">别再纠结了，让我帮你决定！</p>
+                <div class="mt-20">
+                    <button id="randomize-button" class="w-48 h-48 bg-orange-500 rounded-full text-white text-2xl font-bold shadow-lg hover:bg-orange-600 focus:outline-none focus:ring-4 focus:ring-orange-300 transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-100 flex items-center justify-center">
+                        <span id="button-text">开始选择</span>
+                        <svg id="loading-spinner" class="animate-spin h-8 w-8 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    </button>
+                </div>
+            </div>
+            <!-- 结果卡片 -->
+            <div id="result-card" class="hidden absolute bottom-0 left-0 w-full bg-white p-6 rounded-t-3xl shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)] z-10">
+                <div class="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4"></div>
+                <div id="result-content"></div>
+            </div>
+        </div>
+        
+        <!-- 底部自定义公告栏 -->
+        <div id="custom-ad-bottom" class="absolute bottom-0 left-0 w-full h-14 bg-gray-800 text-white flex items-center justify-center text-sm z-20">
+            <a href="#" id="custom-ad-link" target="_blank" class="w-full h-full flex items-center justify-center p-1">
+                <!-- 内容由 JS 动态填充 -->
+            </a>
+        </div>
+        
+        <!-- 消息提示框 -->
+        <div id="message-box" class="absolute top-28 left-1/2 -translate-x-1/2 bg-red-500 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-md opacity-0 -translate-y-10 z-30">
+            <span id="message-text"></span>
+        </div>
+
+        <!-- 新增: 密码输入面板 -->
+        <div id="password-prompt" class="hidden absolute top-0 left-0 w-full h-full bg-black/50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl p-6 w-full max-w-xs space-y-4">
+                <h3 class="text-lg font-bold text-center">请输入后台密码</h3>
+                <p id="password-step" class="text-center text-gray-500 text-sm">请输入第 1/3 个密码</p>
+                <input type="password" id="password-input" class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 text-center">
+                <button id="close-password-button" class="w-full py-2 bg-gray-200 text-gray-800 font-bold rounded-lg active-scale">关闭</button>
+            </div>
+        </div>
+
+        <!-- 后台管理面板 -->
+        <div id="admin-panel" class="hidden absolute top-0 left-0 w-full h-full bg-black/50 z-40 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl p-6 w-full max-w-xs space-y-4">
+                <h3 class="text-lg font-bold text-center">编辑底部公告</h3>
+                <!-- 新增: 公告类型选择 -->
+                <fieldset>
+                    <legend class="text-sm font-medium text-gray-700 mb-2">公告类型:</legend>
+                    <div class="flex gap-4">
+                        <label class="flex items-center"><input type="radio" name="adType" value="text" class="mr-2" checked> 文字链接</label>
+                        <label class="flex items-center"><input type="radio" name="adType" value="image" class="mr-2"> 图片链接</label>
+                    </div>
+                </fieldset>
+                <!-- 公告内容输入 -->
+                <div id="ad-text-container">
+                    <label for="ad-text-input" class="text-sm font-medium text-gray-700">公告内容:</label>
+                    <input type="text" id="ad-text-input" class="mt-1 w-full border border-gray-300 rounded-md shadow-sm px-3 py-2" placeholder="输入公告文字">
+                </div>
+                <!-- 新增: 图片链接输入 -->
+                <div id="ad-image-container" class="hidden">
+                    <label for="ad-image-input" class="text-sm font-medium text-gray-700">图片地址 (URL):</label>
+                    <input type="url" id="ad-image-input" class="mt-1 w-full border border-gray-300 rounded-md shadow-sm px-3 py-2" placeholder="https://.../image.png">
+                </div>
+                <!-- 通用链接输入 -->
+                <div>
+                    <label for="ad-link-input" class="text-sm font-medium text-gray-700">目标链接:</label>
+                    <input type="url" id="ad-link-input" class="mt-1 w-full border border-gray-300 rounded-md shadow-sm px-3 py-2" placeholder="https://example.com">
+                </div>
+                <div class="flex gap-4">
+                    <button id="save-ad-button" class="w-full py-2 bg-orange-500 text-white font-bold rounded-lg active-scale">保存</button>
+                    <button id="close-admin-button" class="w-full py-2 bg-gray-200 text-gray-800 font-bold rounded-lg active-scale">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places&callback=initMap" async defer></script>
+
+    <script>
+        // --- 全局变量 ---
+        let map, placesService, userLocation;
+        let isProcessing = false;
+
+        // --- DOM 元素 ---
+        const randomizeButton = document.getElementById('randomize-button');
+        const resultCard = document.getElementById('result-card');
+        const resultContent = document.getElementById('result-content');
+        
+        // --- 广告和后台相关元素 ---
+        const customAdBottom = document.getElementById('custom-ad-bottom');
+        const customAdLink = document.getElementById('custom-ad-link');
+        const adminPanel = document.getElementById('admin-panel');
+        const adTextInput = document.getElementById('ad-text-input');
+        const adLinkInput = document.getElementById('ad-link-input');
+        const adImageInput = document.getElementById('ad-image-input');
+        const saveAdButton = document.getElementById('save-ad-button');
+        const closeAdminButton = document.getElementById('close-admin-button');
+        const adTypeRadios = document.querySelectorAll('input[name="adType"]');
+        const adTextContainer = document.getElementById('ad-text-container');
+        const adImageContainer = document.getElementById('ad-image-container');
+        
+        // --- 密码相关元素 ---
+        const passwordPrompt = document.getElementById('password-prompt');
+        const passwordInput = document.getElementById('password-input');
+        const passwordStep = document.getElementById('password-step');
+        const closePasswordButton = document.getElementById('close-password-button');
+        const PASSWORDS = ["boom", "bibaboom", "boomboom"];
+        let currentPasswordStep = 0;
+
+        // --- 初始化 ---
+        function initMap() {}
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCustomAd();
+        });
+
+        // --- 事件监听 ---
+        randomizeButton.addEventListener('click', () => !isProcessing && startRandomization());
+        saveAdButton.addEventListener('click', saveCustomAd);
+        closeAdminButton.addEventListener('click', () => adminPanel.classList.add('hidden'));
+        closePasswordButton.addEventListener('click', () => passwordPrompt.classList.add('hidden'));
+        passwordInput.addEventListener('keydown', handlePasswordEnter);
+        
+        // 监听广告类型变化
+        adTypeRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                adTextContainer.classList.toggle('hidden', e.target.value === 'image');
+                adImageContainer.classList.toggle('hidden', e.target.value === 'text');
+            });
+        });
+
+        // --- 后台激活逻辑 ---
+        let adminClickCount = 0;
+        let adminClickTimer = null;
+        customAdBottom.addEventListener('click', (e) => {
+            // 阻止链接默认跳转行为，以便我们可以处理点击计数
+            e.preventDefault(); 
+            
+            adminClickCount++;
+            clearTimeout(adminClickTimer);
+            adminClickTimer = setTimeout(() => {
+                // 如果在 1.5 秒内没有连续点击，则重置计数器
+                // 如果点击次数少于 5 次，则执行链接跳转
+                if (adminClickCount < 5) {
+                    const adData = JSON.parse(localStorage.getItem('customAdData'));
+                    if (adData && adData.link) {
+                        window.open(adData.link, '_blank');
+                    }
+                }
+                adminClickCount = 0;
+            }, 1500);
+
+            if (adminClickCount === 5) {
+                clearTimeout(adminClickTimer);
+                adminClickCount = 0;
+                showPasswordPrompt();
+            }
+        });
+
+        // --- 密码处理 ---
+        function showPasswordPrompt() {
+            currentPasswordStep = 0;
+            passwordStep.textContent = `请输入第 ${currentPasswordStep + 1}/${PASSWORDS.length} 个密码`;
+            passwordInput.value = '';
+            passwordPrompt.classList.remove('hidden');
+            passwordInput.focus();
+        }
+
+        function handlePasswordEnter(e) {
+            if (e.key === 'Enter') {
+                if (passwordInput.value === PASSWORDS[currentPasswordStep]) {
+                    currentPasswordStep++;
+                    passwordStep.textContent = `正确！请输入第 ${currentPasswordStep + 1}/${PASSWORDS.length} 个密码`;
+                    passwordInput.value = '';
+                    if (currentPasswordStep === PASSWORDS.length) {
+                        passwordPrompt.classList.add('hidden');
+                        adminPanel.classList.remove('hidden');
+                    }
+                } else {
+                    passwordInput.classList.add('shake');
+                    setTimeout(() => passwordInput.classList.remove('shake'), 820);
+                    passwordStep.textContent = `错误！请重新输入第 1/${PASSWORDS.length} 个密码`;
+                    currentPasswordStep = 0;
+                    passwordInput.value = '';
+                }
+            }
+        }
+
+        // --- 主要功能 (未改变) ---
+        function startRandomization() { /* ... */ }
+        function getUserLocation() { /* ... */ }
+        function searchNearbyRestaurants(location) { /* ... */ }
+
+        // --- 结果显示 (分享功能已整合) ---
+        function displayResult(place) {
+            // ... (此函数逻辑和上一版基本一致) ...
+        }
+        function shareRestaurant(name, address, url) { /* ... */ }
+
+        // --- 公告栏管理 (已更新) ---
+        function loadCustomAd() {
+            const adData = JSON.parse(localStorage.getItem('customAdData')) || { type: 'text', text: '这里是您的自定义公告/广告位', link: '#' };
+            
+            customAdLink.href = adData.link || '#';
+            customAdLink.innerHTML = ''; // 清空旧内容
+
+            if (adData.type === 'image' && adData.imageUrl) {
+                const img = document.createElement('img');
+                img.src = adData.imageUrl;
+                img.alt = adData.text || '广告';
+                img.className = 'h-full w-full object-contain';
+                customAdLink.appendChild(img);
+            } else {
+                const span = document.createElement('span');
+                span.textContent = adData.text || '这里是您的自定义公告/广告位';
+                customAdLink.appendChild(span);
+            }
+
+            // 更新后台面板的默认值
+            adTextInput.value = adData.text || '';
+            adLinkInput.value = adData.link || '';
+            adImageInput.value = adData.imageUrl || '';
+            document.querySelector(`input[name="adType"][value="${adData.type || 'text'}"]`).checked = true;
+            // 触发change事件以正确显示/隐藏输入框
+            document.querySelector(`input[name="adType"][value="${adData.type || 'text'}"]`).dispatchEvent(new Event('change'));
+        }
+
+        function saveCustomAd() {
+            const adType = document.querySelector('input[name="adType"]:checked').value;
+            const adData = {
+                type: adType,
+                text: adTextInput.value,
+                link: adLinkInput.value,
+                imageUrl: adImageInput.value
+            };
+            localStorage.setItem('customAdData', JSON.stringify(adData));
+            loadCustomAd();
+            adminPanel.classList.add('hidden');
+            showMessage("公告已更新！");
+        }
+
+        // --- 辅助函数 ---
+        function setLoadingState(isLoading) { /* ... */ }
+        function hideResultCard() { /* ... */ }
+        function generateStars(rating) { /* ... */ }
+        function showMessage(message) { /* ... */ }
+
+        // --- 重新粘贴未改变的核心函数 ---
+        function startRandomization() {
+            isProcessing = true;
+            hideResultCard();
+            setLoadingState(true);
+            getUserLocation().then(location => {
+                userLocation = location;
+                return searchNearbyRestaurants(location);
+            }).then(restaurants => {
+                if (restaurants && restaurants.length > 0) {
+                    const randomRestaurant = restaurants[Math.floor(Math.random() * restaurants.length)];
+                    displayResult(randomRestaurant);
+                } else {
+                    showMessage("附近没有找到餐厅哦！");
+                    setLoadingState(false);
+                    isProcessing = false;
+                }
+            }).catch(error => {
+                console.error("处理流程出错:", error);
+                showMessage(error);
+                setLoadingState(false);
+                isProcessing = false;
+            });
+        }
+        function getUserLocation() {
+            return new Promise((resolve, reject) => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const pos = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+                            resolve(pos);
+                        },
+                        () => { reject("请允许访问您的位置信息。"); }
+                    );
+                } else { reject("您的浏览器不支持地理位置功能。"); }
+            });
+        }
+        function searchNearbyRestaurants(location) {
+            return new Promise((resolve, reject) => {
+                if (!placesService) {
+                    const mapDiv = document.createElement('div');
+                    map = new google.maps.Map(mapDiv);
+                    placesService = new google.maps.places.PlacesService(map);
+                }
+                const request = { location: location, radius: '1500', type: ['restaurant'], openNow: true };
+                placesService.nearbySearch(request, (results, status) => {
+                    if (status === google.maps.places.PlacesServiceStatus.OK) {
+                        resolve(results);
+                    } else { reject("搜索餐厅失败，请稍后再试。"); }
+                });
+            });
+        }
+        function displayResult(place) {
+            const name = place.name;
+            const rating = place.rating || 'N/A';
+            const priceLevel = place.price_level ? '¥'.repeat(place.price_level) : '价格未知';
+            const vicinity = place.vicinity || '地址未知';
+            const destinationUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(name + ", " + vicinity)}`;
+            let photoUrl = 'https://placehold.co/600x400/cccccc/ffffff?text=暂无图片';
+            if (place.photos && place.photos.length > 0) {
+                photoUrl = place.photos[0].getUrl({ 'maxWidth': 600, 'maxHeight': 400 });
+            }
+            resultContent.innerHTML = `<div class="w-full h-40 bg-gray-200 rounded-xl mb-4 overflow-hidden"><img src="${photoUrl}" alt="${name}" class="w-full h-full object-cover"></div><p class="text-sm font-semibold text-orange-500">就是这家了！</p><h2 class="text-3xl font-bold text-gray-800 mt-1">${name}</h2><div class="flex flex-wrap items-center text-gray-500 mt-3 gap-x-3"><span>${place.types[0] || '餐厅'}</span><span class="text-gray-300">·</span><span>${priceLevel}</span></div><div class="flex items-center mt-2"><div class="flex items-center">${generateStars(rating)}</div><span class="text-sm text-gray-600 ml-2 font-medium">${rating} (${place.user_ratings_total || 0} 评价)</span></div><div class="grid grid-cols-5 gap-3 mt-6"><button id="retry-button" class="col-span-2 w-full py-3 bg-gray-200 text-gray-800 font-bold rounded-xl active-scale">换一个</button><button id="go-button" class="col-span-3 w-full py-3 bg-orange-500 text-white font-bold rounded-xl shadow-md shadow-orange-500/30 active-scale hover:bg-orange-600">导航出发</button><button id="share-button" class="col-span-5 w-full mt-2 py-3 bg-blue-500 text-white font-bold rounded-xl active-scale hover:bg-blue-600 flex items-center justify-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>分享给朋友</button></div>`;
+            resultCard.classList.remove('hidden');
+            resultCard.classList.add('animate-slide-up');
+            document.getElementById('retry-button').addEventListener('click', startRandomization);
+            document.getElementById('go-button').addEventListener('click', () => window.open(destinationUrl, '_blank'));
+            document.getElementById('share-button').addEventListener('click', () => shareRestaurant(name, vicinity, destinationUrl));
+            setLoadingState(false);
+            isProcessing = false;
+        }
+        function shareRestaurant(name, address, url) {
+            const shareData = { title: '今天我们吃这家吧！', text: `我发现了一家不错的餐厅：${name}\n地址：${address}\n`, url: url };
+            if (navigator.share) {
+                navigator.share(shareData).then(() => console.log('分享成功')).catch((error) => console.log('分享失败', error));
+            } else {
+                showMessage("您的浏览器不支持一键分享功能。");
+            }
+        }
+        function setLoadingState(isLoading) {
+            const buttonText = document.getElementById('button-text');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            buttonText.classList.toggle('hidden', isLoading);
+            loadingSpinner.classList.toggle('hidden', !isLoading);
+            randomizeButton.disabled = isLoading;
+        }
+        function hideResultCard() {
+            if (!resultCard.classList.contains('hidden')) {
+                resultCard.classList.remove('animate-slide-up');
+                resultCard.classList.add('hidden');
+            }
+        }
+        function generateStars(rating) {
+            if (typeof rating !== 'number') return '<span>无评分</span>';
+            let starsHTML = '';
+            const fullStars = Math.floor(rating);
+            const halfStar = rating % 1 >= 0.5;
+            for (let i = 0; i < fullStars; i++) { starsHTML += '<svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>'; }
+            if (halfStar) { starsHTML += '<svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292zM10 12.585l1.738 1.263-.332-2.023.003-.005 1.468-1.066-2.03-.295-.907-1.84-2.03.295 1.468 1.066-.332 2.023L10 12.585z"></path></svg>'; }
+            const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+            for (let i = 0; i < emptyStars; i++) { starsHTML += '<svg class="w-5 h-5 text-gray-300" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>'; }
+            return starsHTML;
+        }
+        function showMessage(message) {
+            const messageBox = document.getElementById('message-box');
+            const messageText = document.getElementById('message-text');
+            messageText.textContent = message;
+            messageBox.classList.remove('opacity-0', '-translate-y-10');
+            setTimeout(() => { messageBox.classList.add('opacity-0', '-translate-y-10'); }, 3000);
+        }
+    </script>
+</body>
+</html>
