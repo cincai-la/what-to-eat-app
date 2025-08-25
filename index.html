@@ -14,9 +14,8 @@
         .animate-slide-up { animation: slide-up 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
         .active-scale { transition: transform 0.1s ease; }
         .active-scale:active { transform: scale(0.95); }
-        #message-box, #admin-panel, #password-prompt { transition: opacity 0.3s, transform 0.3s; }
+        #message-box, #admin-panel, #password-prompt, #donation-modal { transition: opacity 0.3s, transform 0.3s; }
         .main-container { flex-grow: 1; overflow-y: auto; padding-bottom: 60px; }
-        /* 密码输入框的抖动动画 */
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
         .shake { animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both; }
     </style>
@@ -27,9 +26,7 @@
     <div class="w-full max-w-sm h-[880px] max-h-[95vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col relative">
 
         <!-- 顶部状态栏 -->
-        <div class="absolute top-0 left-0 w-full p-4 flex justify-between items-center text-xs text-gray-700 z-20 bg-white/80 backdrop-blur-sm">
-            <span>9:41</span>
-        </div>
+        <div class="absolute top-0 left-0 w-full p-4 flex justify-end items-center text-xs text-gray-700 z-20 bg-white/80 backdrop-blur-sm"></div>
         
         <!-- Google Ad 栏位 -->
         <div id="google-ad-top" class="w-full h-14 bg-gray-200 flex items-center justify-center text-gray-500 text-sm mt-12 flex-shrink-0 z-10">
@@ -39,74 +36,104 @@
         <!-- 主内容区域容器 -->
         <div class="main-container relative">
             <div id="main-screen" class="flex flex-col items-center justify-center text-center p-8 min-h-full">
-                <h1 class="text-4xl font-bold text-gray-800 tracking-wider">今天吃什么？</h1>
-                <p class="text-gray-500 mt-4">别再纠结了，让我帮你决定！</p>
+                <div id="donation-button" class="absolute top-4 right-4 text-center cursor-pointer group">
+                    <div class="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center text-yellow-800 font-bold text-lg shadow-md group-hover:bg-yellow-500 transition-colors">$$</div>
+                    <p class="text-xs text-gray-500 mt-1 font-semibold" data-lang-key="donationTitle">给原创小小的鼓励</p>
+                </div>
+                <h1 class="text-4xl font-bold text-gray-800 tracking-wider" data-lang-key="mainTitle">今天吃什么？</h1>
+                <p class="text-gray-500 mt-4" data-lang-key="mainSubtitle">别再纠结了，让我帮你决定！</p>
                 <div class="mt-20">
                     <button id="randomize-button" class="w-48 h-48 bg-orange-500 rounded-full text-white text-2xl font-bold shadow-lg hover:bg-orange-600 focus:outline-none focus:ring-4 focus:ring-orange-300 transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-100 flex items-center justify-center">
-                        <span id="button-text">开始选择</span>
+                        <span id="button-text" data-lang-key="startButton">开始选择</span>
                         <svg id="loading-spinner" class="animate-spin h-8 w-8 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     </button>
                 </div>
             </div>
-            <!-- 结果卡片 -->
             <div id="result-card" class="hidden absolute bottom-0 left-0 w-full bg-white p-6 rounded-t-3xl shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)] z-10">
                 <div class="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4"></div>
                 <div id="result-content"></div>
             </div>
         </div>
         
-        <!-- 底部自定义公告栏 -->
         <div id="custom-ad-bottom" class="absolute bottom-0 left-0 w-full h-14 bg-gray-800 text-white flex items-center justify-center text-sm z-20">
-            <a href="#" id="custom-ad-link" target="_blank" class="w-full h-full flex items-center justify-center p-1">
-                <!-- 内容由 JS 动态填充 -->
-            </a>
+            <a href="#" id="custom-ad-link" target="_blank" class="w-full h-full flex items-center justify-center p-1"></a>
         </div>
         
-        <!-- 消息提示框 -->
-        <div id="message-box" class="absolute top-28 left-1/2 -translate-x-1/2 bg-red-500 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-md opacity-0 -translate-y-10 z-30">
+        <div id="message-box" class="absolute top-28 left-1/2 -translate-x-1/2 bg-green-500 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-md opacity-0 -translate-y-10 z-30">
             <span id="message-text"></span>
         </div>
 
-        <!-- 新增: 密码输入面板 -->
-        <div id="password-prompt" class="hidden absolute top-0 left-0 w-full h-full bg-black/50 z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-xl p-6 w-full max-w-xs space-y-4">
-                <h3 class="text-lg font-bold text-center">请输入后台密码</h3>
-                <p id="password-step" class="text-center text-gray-500 text-sm">请输入第 1/3 个密码</p>
-                <input type="password" id="password-input" class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 text-center">
-                <button id="close-password-button" class="w-full py-2 bg-gray-200 text-gray-800 font-bold rounded-lg active-scale">关闭</button>
+        <!-- 收款码/打赏模态框 (已更新) -->
+        <div id="donation-modal" class="hidden absolute top-0 left-0 w-full h-full bg-black/50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl p-6 w-full max-w-xs space-y-4 relative max-h-[90%] overflow-y-auto">
+                <button id="close-donation-modal" class="absolute -top-2 -right-2 w-8 h-8 bg-gray-200 rounded-full text-gray-700 flex items-center justify-center font-bold text-lg">&times;</button>
+                <div class="space-y-4">
+                    <!-- 第一个收款码 -->
+                    <div>
+                        <h4 id="donation-title-1" class="text-md font-bold text-center mb-2">支持原创</h4>
+                        <div class="w-full aspect-square bg-gray-100 rounded-md flex items-center justify-center">
+                            <img id="donation-qr-image-1" src="https://placehold.co/300x300/e2e8f0/334155?text=QR+1" alt="QR Code 1" class="w-full h-full object-contain rounded-md">
+                        </div>
+                    </div>
+                    <!-- 第二个收款码 -->
+                    <div>
+                        <h4 id="donation-title-2" class="text-md font-bold text-center mb-2">虚拟货币</h4>
+                        <div class="w-full aspect-square bg-gray-100 rounded-md flex items-center justify-center">
+                            <img id="donation-qr-image-2" src="https://placehold.co/300x300/e2e8f0/334155?text=QR+2" alt="QR Code 2" class="w-full h-full object-contain rounded-md">
+                        </div>
+                        <div class="mt-2 text-center">
+                            <p id="crypto-address" class="text-xs text-gray-600 break-all p-2 bg-gray-100 rounded"></p>
+                            <button id="copy-address-button" class="mt-2 w-full py-2 bg-blue-500 text-white text-sm font-bold rounded-lg active-scale" data-lang-key="copyButton">复制地址</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- 后台管理面板 -->
-        <div id="admin-panel" class="hidden absolute top-0 left-0 w-full h-full bg-black/50 z-40 flex items-center justify-center p-4">
+        <!-- 密码输入面板 -->
+        <div id="password-prompt" class="hidden absolute top-0 left-0 w-full h-full bg-black/50 z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-xl p-6 w-full max-w-xs space-y-4">
-                <h3 class="text-lg font-bold text-center">编辑底部公告</h3>
-                <!-- 新增: 公告类型选择 -->
-                <fieldset>
-                    <legend class="text-sm font-medium text-gray-700 mb-2">公告类型:</legend>
-                    <div class="flex gap-4">
-                        <label class="flex items-center"><input type="radio" name="adType" value="text" class="mr-2" checked> 文字链接</label>
-                        <label class="flex items-center"><input type="radio" name="adType" value="image" class="mr-2"> 图片链接</label>
+                <h3 class="text-lg font-bold text-center" data-lang-key="passwordTitle">请输入后台密码</h3>
+                <p id="password-step" class="text-center text-gray-500 text-sm"></p>
+                <input type="password" id="password-input" class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 text-center">
+                <button id="close-password-button" class="w-full py-2 bg-gray-200 text-gray-800 font-bold rounded-lg active-scale" data-lang-key="closeButton">关闭</button>
+            </div>
+        </div>
+
+        <!-- 后台管理面板 (已更新) -->
+        <div id="admin-panel" class="hidden absolute top-0 left-0 w-full h-full bg-black/50 z-40 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl p-6 w-full max-w-xs space-y-4 overflow-y-auto max-h-[90%]">
+                <h3 class="text-lg font-bold text-center" data-lang-key="adminTitle">编辑内容</h3>
+                <div class="border-b pb-4">
+                    <h4 class="font-semibold mb-2" data-lang-key="adminBannerSection">底部公告栏</h4>
+                    <fieldset>
+                        <legend class="text-sm font-medium text-gray-700 mb-2" data-lang-key="adTypeLegend">公告类型:</legend>
+                        <div class="flex gap-4">
+                            <label class="flex items-center"><input type="radio" name="adType" value="text" class="mr-2" checked> <span data-lang-key="adType_text">文字链接</span></label>
+                            <label class="flex items-center"><input type="radio" name="adType" value="image" class="mr-2"> <span data-lang-key="adType_image">图片链接</span></label>
+                        </div>
+                    </fieldset>
+                    <div id="ad-text-container" class="mt-2"><label for="ad-text-input" class="text-sm font-medium text-gray-700" data-lang-key="adTextLabel">公告内容:</label><input type="text" id="ad-text-input" class="mt-1 w-full border border-gray-300 rounded-md shadow-sm px-3 py-2"></div>
+                    <div id="ad-image-container" class="hidden mt-2"><label for="ad-image-input" class="text-sm font-medium text-gray-700" data-lang-key="adImageLabel">图片地址 (URL):</label><input type="url" id="ad-image-input" class="mt-1 w-full border border-gray-300 rounded-md shadow-sm px-3 py-2"></div>
+                    <div class="mt-2"><label for="ad-link-input" class="text-sm font-medium text-gray-700" data-lang-key="adLinkLabel">目标链接:</label><input type="url" id="ad-link-input" class="mt-1 w-full border border-gray-300 rounded-md shadow-sm px-3 py-2"></div>
+                </div>
+                <div class="pt-4 space-y-4">
+                    <h4 class="font-semibold mb-2" data-lang-key="adminDonationSection">鼓励/收款码</h4>
+                    <div class="border-b pb-4">
+                        <h5 class="text-sm font-bold text-gray-600" data-lang-key="adminDonationSection1">收款码 1</h5>
+                        <div><label for="donation-title-1-input" class="text-sm font-medium text-gray-700" data-lang-key="donationTitleLabel">标题:</label><input type="text" id="donation-title-1-input" class="mt-1 w-full border border-gray-300 rounded-md shadow-sm px-3 py-2"></div>
+                        <div class="mt-2"><label for="donation-qr-1-input" class="text-sm font-medium text-gray-700" data-lang-key="donationQRLabel">收款码图片地址:</label><input type="url" id="donation-qr-1-input" class="mt-1 w-full border border-gray-300 rounded-md shadow-sm px-3 py-2"></div>
                     </div>
-                </fieldset>
-                <!-- 公告内容输入 -->
-                <div id="ad-text-container">
-                    <label for="ad-text-input" class="text-sm font-medium text-gray-700">公告内容:</label>
-                    <input type="text" id="ad-text-input" class="mt-1 w-full border border-gray-300 rounded-md shadow-sm px-3 py-2" placeholder="输入公告文字">
+                    <div>
+                        <h5 class="text-sm font-bold text-gray-600" data-lang-key="adminDonationSection2">收款码 2 (虚拟货币)</h5>
+                        <div><label for="donation-title-2-input" class="text-sm font-medium text-gray-700" data-lang-key="donationTitleLabel">标题:</label><input type="text" id="donation-title-2-input" class="mt-1 w-full border border-gray-300 rounded-md shadow-sm px-3 py-2"></div>
+                        <div class="mt-2"><label for="donation-qr-2-input" class="text-sm font-medium text-gray-700" data-lang-key="donationQRLabel">收款码图片地址:</label><input type="url" id="donation-qr-2-input" class="mt-1 w-full border border-gray-300 rounded-md shadow-sm px-3 py-2"></div>
+                        <div class="mt-2"><label for="crypto-address-input" class="text-sm font-medium text-gray-700" data-lang-key="cryptoAddressLabel">钱包地址:</label><input type="text" id="crypto-address-input" class="mt-1 w-full border border-gray-300 rounded-md shadow-sm px-3 py-2"></div>
+                    </div>
                 </div>
-                <!-- 新增: 图片链接输入 -->
-                <div id="ad-image-container" class="hidden">
-                    <label for="ad-image-input" class="text-sm font-medium text-gray-700">图片地址 (URL):</label>
-                    <input type="url" id="ad-image-input" class="mt-1 w-full border border-gray-300 rounded-md shadow-sm px-3 py-2" placeholder="https://.../image.png">
-                </div>
-                <!-- 通用链接输入 -->
-                <div>
-                    <label for="ad-link-input" class="text-sm font-medium text-gray-700">目标链接:</label>
-                    <input type="url" id="ad-link-input" class="mt-1 w-full border border-gray-300 rounded-md shadow-sm px-3 py-2" placeholder="https://example.com">
-                </div>
-                <div class="flex gap-4">
-                    <button id="save-ad-button" class="w-full py-2 bg-orange-500 text-white font-bold rounded-lg active-scale">保存</button>
-                    <button id="close-admin-button" class="w-full py-2 bg-gray-200 text-gray-800 font-bold rounded-lg active-scale">关闭</button>
+                <div class="flex gap-4 pt-4">
+                    <button id="save-content-button" class="w-full py-2 bg-orange-500 text-white font-bold rounded-lg active-scale" data-lang-key="saveButton">保存</button>
+                    <button id="close-admin-button" class="w-full py-2 bg-gray-200 text-gray-800 font-bold rounded-lg active-scale" data-lang-key="closeButton">关闭</button>
                 </div>
             </div>
         </div>
@@ -115,284 +142,114 @@
     <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places&callback=initMap" async defer></script>
 
     <script>
-        // --- 全局变量 ---
-        let map, placesService, userLocation;
-        let isProcessing = false;
+        // --- 多语言翻译字典 (新增条目) ---
+        const translations = {
+            en: {
+                mainTitle: "What to Eat Today?", mainSubtitle: "Stop hesitating, let me decide for you!", startButton: "Let's Go!",
+                resultTitle: "This is the one!", retryButton: "Try Another", dislikeButton: "Not this one", navigateButton: "Navigate", shareButton: "Share",
+                passwordTitle: "Enter Admin Password", closeButton: "Close", adminTitle: "Edit Content", saveButton: "Save",
+                adminBannerSection: "Bottom Banner", adTypeLegend: "Banner Type:", adType_text: "Text Link", adType_image: "Image Link",
+                adTextLabel: "Banner Text:", adImageLabel: "Image URL:", adLinkLabel: "Target URL:",
+                adminDonationSection: "Donation / QR Codes", adminDonationSection1: "QR Code 1", adminDonationSection2: "QR Code 2 (Crypto)",
+                donationTitle: "Support Creator", donationTitleLabel: "Title:", donationQRLabel: "QR Code Image URL:",
+                cryptoAddressLabel: "Wallet Address:", copyButton: "Copy Address",
+                defaultAdText: "Your custom banner/ad space",
+                passwordPrompt: (c, t) => `Enter password ${c}/${t}`, passwordCorrect: (c, t) => `Correct! Enter password ${c}/${t}`, passwordIncorrect: (t) => `Incorrect! Please re-enter password 1/${t}`,
+                ratings: (c) => `${c} ratings`, priceUnknown: "Price unknown",
+                msgShareUnsupported: "Your browser does not support the share feature.", msgLocationPermission: "Please allow access to your location.",
+                msgLocationUnsupported: "Geolocation is not supported by your browser.", msgSearchFailed: "Failed to search for restaurants, please try again later.",
+                msgNoRestaurants: "No restaurants found nearby!", msgAdUpdated: "Content updated!", msgAddressCopied: "Address copied to clipboard!",
+            },
+            zh: {
+                mainTitle: "今天吃什么？", mainSubtitle: "别再纠结了，让我帮你决定！", startButton: "开始选择",
+                resultTitle: "就是这家了！", retryButton: "换一个", dislikeButton: "不喜欢", navigateButton: "导航出发", shareButton: "分享",
+                passwordTitle: "请输入后台密码", closeButton: "关闭", adminTitle: "编辑内容", saveButton: "保存",
+                adminBannerSection: "底部公告栏", adTypeLegend: "公告类型:", adType_text: "文字链接", adType_image: "图片链接",
+                adTextLabel: "公告内容:", adImageLabel: "图片地址 (URL):", adLinkLabel: "目标链接:",
+                adminDonationSection: "鼓励/收款码", adminDonationSection1: "收款码 1", adminDonationSection2: "收款码 2 (虚拟货币)",
+                donationTitle: "给原创小小的鼓励", donationTitleLabel: "标题:", donationQRLabel: "收款码图片地址:",
+                cryptoAddressLabel: "钱包地址:", copyButton: "复制地址",
+                defaultAdText: "这里是您的自定义公告/广告位",
+                passwordPrompt: (c, t) => `请输入第 ${c}/${t} 个密码`, passwordCorrect: (c, t) => `正确！请输入第 ${c}/${t} 个密码`, passwordIncorrect: (t) => `错误！请重新输入第 1/${t} 个密码`,
+                ratings: (c) => `${c} 评价`, priceUnknown: "价格未知",
+                msgShareUnsupported: "您的浏览器不支持一键分享功能。", msgLocationPermission: "请允许访问您的位置信息。",
+                msgLocationUnsupported: "您的浏览器不支持地理位置功能。", msgSearchFailed: "搜索餐厅失败，请稍后再试。",
+                msgNoRestaurants: "附近没有找到餐厅哦！", msgAdUpdated: "内容已更新！", msgAddressCopied: "地址已复制到剪贴板！",
+            }
+        };
 
-        // --- DOM 元素 ---
-        const randomizeButton = document.getElementById('randomize-button');
-        const resultCard = document.getElementById('result-card');
-        const resultContent = document.getElementById('result-content');
-        
-        // --- 广告和后台相关元素 ---
-        const customAdBottom = document.getElementById('custom-ad-bottom');
-        const customAdLink = document.getElementById('custom-ad-link');
-        const adminPanel = document.getElementById('admin-panel');
-        const adTextInput = document.getElementById('ad-text-input');
-        const adLinkInput = document.getElementById('ad-link-input');
-        const adImageInput = document.getElementById('ad-image-input');
-        const saveAdButton = document.getElementById('save-ad-button');
-        const closeAdminButton = document.getElementById('close-admin-button');
-        const adTypeRadios = document.querySelectorAll('input[name="adType"]');
-        const adTextContainer = document.getElementById('ad-text-container');
-        const adImageContainer = document.getElementById('ad-image-container');
-        
-        // --- 密码相关元素 ---
-        const passwordPrompt = document.getElementById('password-prompt');
-        const passwordInput = document.getElementById('password-input');
-        const passwordStep = document.getElementById('password-step');
-        const closePasswordButton = document.getElementById('close-password-button');
+        // --- 全局变量 ---
+        let map, placesService, userLocation, isProcessing = false, currentLang = 'en', lastRestaurantResults = [];
         const PASSWORDS = ["boom", "bibaboom", "boomboom"];
         let currentPasswordStep = 0;
 
-        // --- 初始化 ---
+        // --- DOM 元素 ---
+        const allDOMElements = {
+            randomizeButton: document.getElementById('randomize-button'), resultCard: document.getElementById('result-card'),
+            resultContent: document.getElementById('result-content'), customAdBottom: document.getElementById('custom-ad-bottom'),
+            customAdLink: document.getElementById('custom-ad-link'), adminPanel: document.getElementById('admin-panel'),
+            adTextInput: document.getElementById('ad-text-input'), adLinkInput: document.getElementById('ad-link-input'),
+            adImageInput: document.getElementById('ad-image-input'), saveContentButton: document.getElementById('save-content-button'),
+            closeAdminButton: document.getElementById('close-admin-button'), adTypeRadios: document.querySelectorAll('input[name="adType"]'),
+            adTextContainer: document.getElementById('ad-text-container'), adImageContainer: document.getElementById('ad-image-container'),
+            passwordPrompt: document.getElementById('password-prompt'), passwordInput: document.getElementById('password-input'),
+            passwordStep: document.getElementById('password-step'), closePasswordButton: document.getElementById('close-password-button'),
+            donationButton: document.getElementById('donation-button'), donationModal: document.getElementById('donation-modal'),
+            closeDonationModal: document.getElementById('close-donation-modal'),
+            donationTitle1: document.getElementById('donation-title-1'), donationQrImage1: document.getElementById('donation-qr-image-1'),
+            donationTitle2: document.getElementById('donation-title-2'), donationQrImage2: document.getElementById('donation-qr-image-2'),
+            cryptoAddress: document.getElementById('crypto-address'), copyAddressButton: document.getElementById('copy-address-button'),
+            donationTitle1Input: document.getElementById('donation-title-1-input'), donationQr1Input: document.getElementById('donation-qr-1-input'),
+            donationTitle2Input: document.getElementById('donation-title-2-input'), donationQr2Input: document.getElementById('donation-qr-2-input'),
+            cryptoAddressInput: document.getElementById('crypto-address-input'),
+        };
+        
+        // --- 初始化 & 语言设置 ---
         function initMap() {}
-
         document.addEventListener('DOMContentLoaded', () => {
-            loadCustomAd();
+            detectLanguage();
+            translatePage();
+            loadContent();
         });
+        function detectLanguage() { const lang = navigator.language || navigator.userLanguage; currentLang = lang.startsWith('zh') ? 'zh' : 'en'; document.documentElement.lang = currentLang; }
+        function translatePage() { document.querySelectorAll('[data-lang-key]').forEach(el => { const key = el.dataset.langKey; if (translations[currentLang][key]) el.textContent = translations[currentLang][key]; }); }
 
         // --- 事件监听 ---
-        randomizeButton.addEventListener('click', () => !isProcessing && startRandomization());
-        saveAdButton.addEventListener('click', saveCustomAd);
-        closeAdminButton.addEventListener('click', () => adminPanel.classList.add('hidden'));
-        closePasswordButton.addEventListener('click', () => passwordPrompt.classList.add('hidden'));
-        passwordInput.addEventListener('keydown', handlePasswordEnter);
-        
-        // 监听广告类型变化
-        adTypeRadios.forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                adTextContainer.classList.toggle('hidden', e.target.value === 'image');
-                adImageContainer.classList.toggle('hidden', e.target.value === 'text');
-            });
-        });
+        allDOMElements.randomizeButton.addEventListener('click', () => !isProcessing && startRandomization());
+        allDOMElements.saveContentButton.addEventListener('click', saveContent);
+        allDOMElements.closeAdminButton.addEventListener('click', () => allDOMElements.adminPanel.classList.add('hidden'));
+        allDOMElements.closePasswordButton.addEventListener('click', () => allDOMElements.passwordPrompt.classList.add('hidden'));
+        allDOMElements.passwordInput.addEventListener('keydown', handlePasswordEnter);
+        allDOMElements.donationButton.addEventListener('click', () => allDOMElements.donationModal.classList.remove('hidden'));
+        allDOMElements.closeDonationModal.addEventListener('click', () => allDOMElements.donationModal.classList.add('hidden'));
+        allDOMElements.copyAddressButton.addEventListener('click', copyCryptoAddress);
+        allDOMElements.adTypeRadios.forEach(radio => { radio.addEventListener('change', (e) => { allDOMElements.adTextContainer.classList.toggle('hidden', e.target.value === 'image'); allDOMElements.adImageContainer.classList.toggle('hidden', e.target.value === 'text'); }); });
 
         // --- 后台激活逻辑 ---
-        let adminClickCount = 0;
-        let adminClickTimer = null;
-        customAdBottom.addEventListener('click', (e) => {
-            // 阻止链接默认跳转行为，以便我们可以处理点击计数
-            e.preventDefault(); 
-            
-            adminClickCount++;
-            clearTimeout(adminClickTimer);
-            adminClickTimer = setTimeout(() => {
-                // 如果在 1.5 秒内没有连续点击，则重置计数器
-                // 如果点击次数少于 5 次，则执行链接跳转
-                if (adminClickCount < 5) {
-                    const adData = JSON.parse(localStorage.getItem('customAdData'));
-                    if (adData && adData.link) {
-                        window.open(adData.link, '_blank');
-                    }
-                }
-                adminClickCount = 0;
-            }, 1500);
+        let adminClickCount = 0, adminClickTimer = null;
+        allDOMElements.customAdBottom.addEventListener('click', (e) => { e.preventDefault(); adminClickCount++; clearTimeout(adminClickTimer); adminClickTimer = setTimeout(() => { if (adminClickCount < 5) { const data = JSON.parse(localStorage.getItem('appContent')); if (data && data.adLink && data.adLink !== '#') window.open(data.adLink, '_blank'); } adminClickCount = 0; }, 1500); if (adminClickCount === 5) { clearTimeout(adminClickTimer); adminClickCount = 0; showPasswordPrompt(); } });
+        
+        function showPasswordPrompt() { currentPasswordStep = 0; allDOMElements.passwordStep.textContent = translations[currentLang].passwordPrompt(1, PASSWORDS.length); allDOMElements.passwordInput.value = ''; allDOMElements.passwordPrompt.classList.remove('hidden'); allDOMElements.passwordInput.focus(); }
+        function handlePasswordEnter(e) { if (e.key !== 'Enter') return; if (allDOMElements.passwordInput.value === PASSWORDS[currentPasswordStep]) { currentPasswordStep++; if (currentPasswordStep === PASSWORDS.length) { allDOMElements.passwordPrompt.classList.add('hidden'); allDOMElements.adminPanel.classList.remove('hidden'); } else { allDOMElements.passwordStep.textContent = translations[currentLang].passwordCorrect(currentPasswordStep + 1, PASSWORDS.length); allDOMElements.passwordInput.value = ''; } } else { allDOMElements.passwordInput.classList.add('shake'); setTimeout(() => allDOMElements.passwordInput.classList.remove('shake'), 820); currentPasswordStep = 0; allDOMElements.passwordStep.textContent = translations[currentLang].passwordIncorrect(PASSWORDS.length); allDOMElements.passwordInput.value = ''; } }
 
-            if (adminClickCount === 5) {
-                clearTimeout(adminClickTimer);
-                adminClickCount = 0;
-                showPasswordPrompt();
-            }
-        });
+        // --- 主要功能 ---
+        function startRandomization() { isProcessing = true; hideResultCard(); setLoadingState(true); getUserLocation().then(location => { userLocation = location; return searchNearbyRestaurants(location); }).then(restaurants => { lastRestaurantResults = restaurants || []; if (lastRestaurantResults.length > 0) { const randomRestaurant = lastRestaurantResults[Math.floor(Math.random() * lastRestaurantResults.length)]; displayResult(randomRestaurant); } else { showMessage('msgNoRestaurants'); setLoadingState(false); isProcessing = false; } }).catch(errorKey => { console.error("Error:", errorKey); showMessage(errorKey); setLoadingState(false); isProcessing = false; }); }
+        function findAnotherRestaurant(currentPlaceId) { const remaining = lastRestaurantResults.filter(r => r.place_id !== currentPlaceId); if (remaining.length > 0) { displayResult(remaining[Math.floor(Math.random() * remaining.length)]); } else { startRandomization(); } }
+        function getUserLocation() { return new Promise((resolve, reject) => { if (navigator.geolocation) { navigator.geolocation.getCurrentPosition((pos) => resolve(new google.maps.LatLng(pos.coords.latitude, pos.coords.longitude)), () => reject('msgLocationPermission')); } else { reject('msgLocationUnsupported'); } }); }
+        function searchNearbyRestaurants(location) { return new Promise((resolve, reject) => { if (!placesService) { placesService = new google.maps.places.PlacesService(document.createElement('div')); } placesService.nearbySearch({ location: location, radius: '1500', type: ['restaurant'], openNow: true }, (res, stat) => { if (stat === google.maps.places.PlacesServiceStatus.OK) resolve(res); else reject('msgSearchFailed'); }); }); }
+        function displayResult(place) { const T = translations[currentLang]; const name = place.name, rating = place.rating || 'N/A', price = place.price_level ? '¥'.repeat(place.price_level) : T.priceUnknown, vicinity = place.vicinity || '', destUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(name + ", " + vicinity)}`; let photoUrl = 'https://placehold.co/600x400/ccc/fff?text=N/A'; if (place.photos && place.photos.length > 0) photoUrl = place.photos[0].getUrl({ 'maxWidth': 600, 'maxHeight': 400 }); const dislikeBtn = lastRestaurantResults.length > 1 ? `<button id="dislike-button" class="col-span-2 w-full py-3 bg-red-500 text-white font-bold rounded-xl active-scale">${T.dislikeButton}</button>` : `<div class="col-span-2"></div>`; allDOMElements.resultContent.innerHTML = `<div class="w-full h-40 bg-gray-200 rounded-xl mb-4 overflow-hidden"><img src="${photoUrl}" alt="${name}" class="w-full h-full object-cover"></div><p class="text-sm font-semibold text-orange-500">${T.resultTitle}</p><h2 class="text-3xl font-bold text-gray-800 mt-1">${name}</h2><div class="flex flex-wrap items-center text-gray-500 mt-3 gap-x-3"><span>${place.types[0] || ''}</span><span class="text-gray-300">·</span><span>${price}</span></div><div class="flex items-center mt-2"><div class="flex items-center">${generateStars(rating)}</div><span class="text-sm text-gray-600 ml-2 font-medium">${rating} (${T.ratings(place.user_ratings_total || 0)})</span></div><div class="grid grid-cols-5 gap-3 mt-6">${dislikeBtn}<button id="retry-button" class="col-span-3 w-full py-3 bg-gray-200 text-gray-800 font-bold rounded-xl active-scale">${T.retryButton}</button><button id="go-button" class="col-span-3 w-full py-3 bg-orange-500 text-white font-bold rounded-xl shadow-md shadow-orange-500/30 active-scale hover:bg-orange-600">${T.navigateButton}</button><button id="share-button" class="col-span-2 w-full py-3 bg-blue-500 text-white font-bold rounded-xl active-scale hover:bg-blue-600 flex items-center justify-center gap-1">${T.shareButton}</button></div>`; allDOMElements.resultCard.classList.remove('hidden'); allDOMElements.resultCard.classList.add('animate-slide-up'); document.getElementById('retry-button').addEventListener('click', startRandomization); document.getElementById('go-button').addEventListener('click', () => window.open(destUrl, '_blank')); document.getElementById('share-button').addEventListener('click', () => shareRestaurant(name, vicinity, destUrl)); if (lastRestaurantResults.length > 1) document.getElementById('dislike-button').addEventListener('click', () => findAnotherRestaurant(place.place_id)); setLoadingState(false); isProcessing = false; }
+        function shareRestaurant(name, address, url) { if (navigator.share) navigator.share({ title: translations[currentLang].mainTitle, text: `${name}\n${address}\n`, url }).catch(e => console.log('Share failed', e)); else showMessage('msgShareUnsupported'); }
+        function copyCryptoAddress() { const address = allDOMElements.cryptoAddress.textContent; if (!address) return; const textArea = document.createElement("textarea"); textArea.value = address; document.body.appendChild(textArea); textArea.select(); try { document.execCommand('copy'); showMessage('msgAddressCopied'); } catch (err) { console.error('Copy failed', err); } document.body.removeChild(textArea); }
 
-        // --- 密码处理 ---
-        function showPasswordPrompt() {
-            currentPasswordStep = 0;
-            passwordStep.textContent = `请输入第 ${currentPasswordStep + 1}/${PASSWORDS.length} 个密码`;
-            passwordInput.value = '';
-            passwordPrompt.classList.remove('hidden');
-            passwordInput.focus();
-        }
-
-        function handlePasswordEnter(e) {
-            if (e.key === 'Enter') {
-                if (passwordInput.value === PASSWORDS[currentPasswordStep]) {
-                    currentPasswordStep++;
-                    passwordStep.textContent = `正确！请输入第 ${currentPasswordStep + 1}/${PASSWORDS.length} 个密码`;
-                    passwordInput.value = '';
-                    if (currentPasswordStep === PASSWORDS.length) {
-                        passwordPrompt.classList.add('hidden');
-                        adminPanel.classList.remove('hidden');
-                    }
-                } else {
-                    passwordInput.classList.add('shake');
-                    setTimeout(() => passwordInput.classList.remove('shake'), 820);
-                    passwordStep.textContent = `错误！请重新输入第 1/${PASSWORDS.length} 个密码`;
-                    currentPasswordStep = 0;
-                    passwordInput.value = '';
-                }
-            }
-        }
-
-        // --- 主要功能 (未改变) ---
-        function startRandomization() { /* ... */ }
-        function getUserLocation() { /* ... */ }
-        function searchNearbyRestaurants(location) { /* ... */ }
-
-        // --- 结果显示 (分享功能已整合) ---
-        function displayResult(place) {
-            // ... (此函数逻辑和上一版基本一致) ...
-        }
-        function shareRestaurant(name, address, url) { /* ... */ }
-
-        // --- 公告栏管理 (已更新) ---
-        function loadCustomAd() {
-            const adData = JSON.parse(localStorage.getItem('customAdData')) || { type: 'text', text: '这里是您的自定义公告/广告位', link: '#' };
-            
-            customAdLink.href = adData.link || '#';
-            customAdLink.innerHTML = ''; // 清空旧内容
-
-            if (adData.type === 'image' && adData.imageUrl) {
-                const img = document.createElement('img');
-                img.src = adData.imageUrl;
-                img.alt = adData.text || '广告';
-                img.className = 'h-full w-full object-contain';
-                customAdLink.appendChild(img);
-            } else {
-                const span = document.createElement('span');
-                span.textContent = adData.text || '这里是您的自定义公告/广告位';
-                customAdLink.appendChild(span);
-            }
-
-            // 更新后台面板的默认值
-            adTextInput.value = adData.text || '';
-            adLinkInput.value = adData.link || '';
-            adImageInput.value = adData.imageUrl || '';
-            document.querySelector(`input[name="adType"][value="${adData.type || 'text'}"]`).checked = true;
-            // 触发change事件以正确显示/隐藏输入框
-            document.querySelector(`input[name="adType"][value="${adData.type || 'text'}"]`).dispatchEvent(new Event('change'));
-        }
-
-        function saveCustomAd() {
-            const adType = document.querySelector('input[name="adType"]:checked').value;
-            const adData = {
-                type: adType,
-                text: adTextInput.value,
-                link: adLinkInput.value,
-                imageUrl: adImageInput.value
-            };
-            localStorage.setItem('customAdData', JSON.stringify(adData));
-            loadCustomAd();
-            adminPanel.classList.add('hidden');
-            showMessage("公告已更新！");
-        }
+        // --- 内容管理 ---
+        function loadContent() { const data = JSON.parse(localStorage.getItem('appContent')) || {}; allDOMElements.customAdLink.href = data.adLink || '#'; allDOMElements.customAdLink.innerHTML = ''; if (data.adType === 'image' && data.adImageUrl) { const img = document.createElement('img'); img.src = data.adImageUrl; img.alt = data.adText || 'ad'; img.className = 'h-full w-full object-contain'; allDOMElements.customAdLink.appendChild(img); } else { const span = document.createElement('span'); span.textContent = data.adText || translations[currentLang].defaultAdText; allDOMElements.customAdLink.appendChild(span); } allDOMElements.donationTitle1.textContent = data.donationTitle1 || translations[currentLang].donationModalTitle; if (data.donationQrUrl1) allDOMElements.donationQrImage1.src = data.donationQrUrl1; allDOMElements.donationTitle2.textContent = data.donationTitle2 || 'Crypto'; if (data.donationQrUrl2) allDOMElements.donationQrImage2.src = data.donationQrUrl2; allDOMElements.cryptoAddress.textContent = data.cryptoAddress || ''; allDOMElements.adTextInput.value = data.adText || ''; allDOMElements.adLinkInput.value = data.adLink || ''; allDOMElements.adImageInput.value = data.adImageUrl || ''; allDOMElements.donationTitle1Input.value = data.donationTitle1 || ''; allDOMElements.donationQr1Input.value = data.donationQrUrl1 || ''; allDOMElements.donationTitle2Input.value = data.donationTitle2 || ''; allDOMElements.donationQr2Input.value = data.donationQrUrl2 || ''; allDOMElements.cryptoAddressInput.value = data.cryptoAddress || ''; document.querySelector(`input[name="adType"][value="${data.adType || 'text'}"]`).checked = true; document.querySelector(`input[name="adType"][value="${data.adType || 'text'}"]`).dispatchEvent(new Event('change')); }
+        function saveContent() { const data = { adType: document.querySelector('input[name="adType"]:checked').value, adText: allDOMElements.adTextInput.value, adLink: allDOMElements.adLinkInput.value, adImageUrl: allDOMElements.adImageInput.value, donationTitle1: allDOMElements.donationTitle1Input.value, donationQrUrl1: allDOMElements.donationQr1Input.value, donationTitle2: allDOMElements.donationTitle2Input.value, donationQrUrl2: allDOMElements.donationQr2Input.value, cryptoAddress: allDOMElements.cryptoAddressInput.value }; localStorage.setItem('appContent', JSON.stringify(data)); loadContent(); allDOMElements.adminPanel.classList.add('hidden'); showMessage('msgAdUpdated'); }
 
         // --- 辅助函数 ---
-        function setLoadingState(isLoading) { /* ... */ }
-        function hideResultCard() { /* ... */ }
-        function generateStars(rating) { /* ... */ }
-        function showMessage(message) { /* ... */ }
-
-        // --- 重新粘贴未改变的核心函数 ---
-        function startRandomization() {
-            isProcessing = true;
-            hideResultCard();
-            setLoadingState(true);
-            getUserLocation().then(location => {
-                userLocation = location;
-                return searchNearbyRestaurants(location);
-            }).then(restaurants => {
-                if (restaurants && restaurants.length > 0) {
-                    const randomRestaurant = restaurants[Math.floor(Math.random() * restaurants.length)];
-                    displayResult(randomRestaurant);
-                } else {
-                    showMessage("附近没有找到餐厅哦！");
-                    setLoadingState(false);
-                    isProcessing = false;
-                }
-            }).catch(error => {
-                console.error("处理流程出错:", error);
-                showMessage(error);
-                setLoadingState(false);
-                isProcessing = false;
-            });
-        }
-        function getUserLocation() {
-            return new Promise((resolve, reject) => {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            const pos = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-                            resolve(pos);
-                        },
-                        () => { reject("请允许访问您的位置信息。"); }
-                    );
-                } else { reject("您的浏览器不支持地理位置功能。"); }
-            });
-        }
-        function searchNearbyRestaurants(location) {
-            return new Promise((resolve, reject) => {
-                if (!placesService) {
-                    const mapDiv = document.createElement('div');
-                    map = new google.maps.Map(mapDiv);
-                    placesService = new google.maps.places.PlacesService(map);
-                }
-                const request = { location: location, radius: '1500', type: ['restaurant'], openNow: true };
-                placesService.nearbySearch(request, (results, status) => {
-                    if (status === google.maps.places.PlacesServiceStatus.OK) {
-                        resolve(results);
-                    } else { reject("搜索餐厅失败，请稍后再试。"); }
-                });
-            });
-        }
-        function displayResult(place) {
-            const name = place.name;
-            const rating = place.rating || 'N/A';
-            const priceLevel = place.price_level ? '¥'.repeat(place.price_level) : '价格未知';
-            const vicinity = place.vicinity || '地址未知';
-            const destinationUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(name + ", " + vicinity)}`;
-            let photoUrl = 'https://placehold.co/600x400/cccccc/ffffff?text=暂无图片';
-            if (place.photos && place.photos.length > 0) {
-                photoUrl = place.photos[0].getUrl({ 'maxWidth': 600, 'maxHeight': 400 });
-            }
-            resultContent.innerHTML = `<div class="w-full h-40 bg-gray-200 rounded-xl mb-4 overflow-hidden"><img src="${photoUrl}" alt="${name}" class="w-full h-full object-cover"></div><p class="text-sm font-semibold text-orange-500">就是这家了！</p><h2 class="text-3xl font-bold text-gray-800 mt-1">${name}</h2><div class="flex flex-wrap items-center text-gray-500 mt-3 gap-x-3"><span>${place.types[0] || '餐厅'}</span><span class="text-gray-300">·</span><span>${priceLevel}</span></div><div class="flex items-center mt-2"><div class="flex items-center">${generateStars(rating)}</div><span class="text-sm text-gray-600 ml-2 font-medium">${rating} (${place.user_ratings_total || 0} 评价)</span></div><div class="grid grid-cols-5 gap-3 mt-6"><button id="retry-button" class="col-span-2 w-full py-3 bg-gray-200 text-gray-800 font-bold rounded-xl active-scale">换一个</button><button id="go-button" class="col-span-3 w-full py-3 bg-orange-500 text-white font-bold rounded-xl shadow-md shadow-orange-500/30 active-scale hover:bg-orange-600">导航出发</button><button id="share-button" class="col-span-5 w-full mt-2 py-3 bg-blue-500 text-white font-bold rounded-xl active-scale hover:bg-blue-600 flex items-center justify-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>分享给朋友</button></div>`;
-            resultCard.classList.remove('hidden');
-            resultCard.classList.add('animate-slide-up');
-            document.getElementById('retry-button').addEventListener('click', startRandomization);
-            document.getElementById('go-button').addEventListener('click', () => window.open(destinationUrl, '_blank'));
-            document.getElementById('share-button').addEventListener('click', () => shareRestaurant(name, vicinity, destinationUrl));
-            setLoadingState(false);
-            isProcessing = false;
-        }
-        function shareRestaurant(name, address, url) {
-            const shareData = { title: '今天我们吃这家吧！', text: `我发现了一家不错的餐厅：${name}\n地址：${address}\n`, url: url };
-            if (navigator.share) {
-                navigator.share(shareData).then(() => console.log('分享成功')).catch((error) => console.log('分享失败', error));
-            } else {
-                showMessage("您的浏览器不支持一键分享功能。");
-            }
-        }
-        function setLoadingState(isLoading) {
-            const buttonText = document.getElementById('button-text');
-            const loadingSpinner = document.getElementById('loading-spinner');
-            buttonText.classList.toggle('hidden', isLoading);
-            loadingSpinner.classList.toggle('hidden', !isLoading);
-            randomizeButton.disabled = isLoading;
-        }
-        function hideResultCard() {
-            if (!resultCard.classList.contains('hidden')) {
-                resultCard.classList.remove('animate-slide-up');
-                resultCard.classList.add('hidden');
-            }
-        }
-        function generateStars(rating) {
-            if (typeof rating !== 'number') return '<span>无评分</span>';
-            let starsHTML = '';
-            const fullStars = Math.floor(rating);
-            const halfStar = rating % 1 >= 0.5;
-            for (let i = 0; i < fullStars; i++) { starsHTML += '<svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>'; }
-            if (halfStar) { starsHTML += '<svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292zM10 12.585l1.738 1.263-.332-2.023.003-.005 1.468-1.066-2.03-.295-.907-1.84-2.03.295 1.468 1.066-.332 2.023L10 12.585z"></path></svg>'; }
-            const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-            for (let i = 0; i < emptyStars; i++) { starsHTML += '<svg class="w-5 h-5 text-gray-300" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>'; }
-            return starsHTML;
-        }
-        function showMessage(message) {
-            const messageBox = document.getElementById('message-box');
-            const messageText = document.getElementById('message-text');
-            messageText.textContent = message;
-            messageBox.classList.remove('opacity-0', '-translate-y-10');
-            setTimeout(() => { messageBox.classList.add('opacity-0', '-translate-y-10'); }, 3000);
-        }
+        function setLoadingState(isLoading) { const btnTxt = document.getElementById('button-text'), spinner = document.getElementById('loading-spinner'); btnTxt.classList.toggle('hidden', isLoading); spinner.classList.toggle('hidden', !isLoading); allDOMElements.randomizeButton.disabled = isLoading; }
+        function hideResultCard() { if (!allDOMElements.resultCard.classList.contains('hidden')) { allDOMElements.resultCard.classList.remove('animate-slide-up'); allDOMElements.resultCard.classList.add('hidden'); } }
+        function generateStars(rating) { if (typeof rating !== 'number') return ''; let html = ''; const full = Math.floor(rating), half = rating % 1 >= 0.5, empty = 5 - full - (half ? 1 : 0); for (let i = 0; i < full; i++) html += '<svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>'; if (half) html += '<svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292zM10 12.585l1.738 1.263-.332-2.023.003-.005 1.468-1.066-2.03-.295-.907-1.84-2.03.295 1.468 1.066-.332 2.023L10 12.585z"></path></svg>'; for (let i = 0; i < empty; i++) html += '<svg class="w-5 h-5 text-gray-300" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>'; return html; }
+        function showMessage(key) { const box = document.getElementById('message-box'), txt = document.getElementById('message-text'); txt.textContent = translations[currentLang][key] || key; box.classList.remove('opacity-0', '-translate-y-10', 'bg-red-500'); box.classList.add(key === 'msgAddressCopied' ? 'bg-green-500' : 'bg-red-500'); setTimeout(() => { box.classList.add('opacity-0', '-translate-y-10'); }, 3000); }
     </script>
 </body>
 </html>
